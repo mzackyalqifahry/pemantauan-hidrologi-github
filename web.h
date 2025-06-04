@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pemantauan Hidrologi - Update 10 Detik</title>
+  <title>Pemantauan Hidrologi - HC-SR04</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -14,12 +14,6 @@
     h1 {
       text-align: center;
       color: #1e3a8a;
-      margin-bottom: 5px;
-    }
-    .subtitle {
-      text-align: center;
-      color: #666;
-      margin-bottom: 20px;
     }
     .dashboard {
       display: flex;
@@ -52,7 +46,7 @@
     .status-siaga { background-color: #fff3e6; color: orange; }
     .status-bahaya { background-color: #ffebee; color: red; }
     .sensor-value {
-      font-size: 2em;
+      font-size: 1.8em;
       font-weight: bold;
       text-align: center;
       margin: 10px 0;
@@ -92,18 +86,11 @@
       text-align: center;
       flex: 1;
     }
-    .refresh-rate {
-      background-color: #e3f2fd;
-      padding: 3px 8px;
-      border-radius: 10px;
-      font-size: 0.8em;
-    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Sistem Pemantauan Hidrologi</h1>
-    <div class="subtitle">Update data setiap <span class="refresh-rate">10 detik</span></div>
+    <h1>Sistem Pemantauan Hidrologi dengan HC-SR04</h1>
     <div class="last-update" id="last-update">Terakhir diperbarui: -</div>
     
     <div class="dashboard">
@@ -120,14 +107,15 @@
       </div>
       
       <div class="card">
-        <h2>Informasi Threshold</h2>
-        <div><span class="status-aman">Aman</span>: &lt;150 cm</div>
-        <div><span class="status-siaga">Siaga</span>: 150-180 cm</div>
-        <div><span class="status-bahaya">Bahaya</span>: &gt;180 cm</div>
+        <h2>Informasi Sensor</h2>
+        <div>Jenis: HC-SR04 Ultrasonic</div>
+        <div>Akurasi: ±3mm</div>
+        <div>Range: 2-400cm</div>
         <div style="margin-top: 15px;">
-          <strong>Sensor HC-SR04</strong><br>
-          Akurasi: ±3mm<br>
-          Range: 2-400cm
+          <strong>Threshold:</strong><br>
+          Aman: &lt;150cm<br>
+          Siaga: 150-180cm<br>
+          Bahaya: &gt;180cm
         </div>
       </div>
     </div>
@@ -137,7 +125,7 @@
         <tr>
           <th>Waktu</th>
           <th>Tinggi Air (cm)</th>
-          <th>Jarak (cm)</th>
+          <th>Jarak Sensor (cm)</th>
           <th>Status</th>
         </tr>
       </thead>
@@ -153,7 +141,6 @@
     // Data dari Arduino
     let waterData = [];
     let chart;
-    let lastUpdateTime = 0;
 
     // Inisialisasi chart
     function initChart() {
@@ -169,7 +156,7 @@
               backgroundColor: 'rgba(59, 130, 246, 0.2)',
               borderColor: 'rgba(37, 99, 235, 1)',
               borderWidth: 2,
-              tension: 0.3,
+              tension: 0.4,
               fill: true,
               yAxisID: 'y'
             },
@@ -179,7 +166,7 @@
               backgroundColor: 'rgba(255, 159, 64, 0.2)',
               borderColor: 'rgba(255, 159, 64, 1)',
               borderWidth: 2,
-              tension: 0.3,
+              tension: 0.4,
               fill: false,
               yAxisID: 'y1'
             }
@@ -187,9 +174,6 @@
         },
         options: {
           responsive: true,
-          animation: {
-            duration: 500 // Animasi lebih cepat untuk update sering
-          },
           scales: {
             y: {
               type: 'linear',
@@ -209,11 +193,7 @@
               grid: { drawOnChartArea: false }
             },
             x: {
-              title: { display: true, text: 'Waktu' },
-              ticks: {
-                maxRotation: 45,
-                minRotation: 45
-              }
+              title: { display: true, text: 'Waktu' }
             }
           },
           plugins: {
@@ -224,13 +204,11 @@
                   yMin: 150,
                   yMax: 150,
                   borderColor: 'orange',
-                  borderWidth: 1.5,
-                  borderDash: [4, 4],
+                  borderWidth: 2,
+                  borderDash: [6, 6],
                   label: {
-                    content: 'Siaga',
-                    enabled: true,
-                    position: 'right',
-                    backgroundColor: 'rgba(255, 159, 64, 0.7)'
+                    content: 'Level Siaga',
+                    enabled: true
                   }
                 },
                 dangerLine: {
@@ -238,20 +216,14 @@
                   yMin: 180,
                   yMax: 180,
                   borderColor: 'red',
-                  borderWidth: 1.5,
-                  borderDash: [4, 4],
+                  borderWidth: 2,
+                  borderDash: [6, 6],
                   label: {
-                    content: 'Bahaya',
-                    enabled: true,
-                    position: 'right',
-                    backgroundColor: 'rgba(255, 99, 132, 0.7)'
+                    content: 'Level Bahaya',
+                    enabled: true
                   }
                 }
               }
-            },
-            tooltip: {
-              mode: 'index',
-              intersect: false
             }
           }
         }
@@ -260,27 +232,13 @@
 
     // Update tampilan dengan data baru
     function updateDisplay(data) {
-      const now = new Date();
-      lastUpdateTime = now.getTime();
-      
       // Update card status
       document.getElementById('current-status').textContent = data.status;
       document.getElementById('current-status').className = `status status-${data.status.toLowerCase()}`;
       document.getElementById('current-water-level').textContent = data.tinggi.toFixed(1);
       document.getElementById('current-distance').textContent = data.jarak.toFixed(1);
       
-      // Update waktu terakhir
-      document.getElementById('last-update').textContent = 
-        `Terakhir diperbarui: ${now.toLocaleTimeString()}`;
-      
       // Tambahkan data ke tabel
-      addToTable(data);
-      
-      // Update chart
-      updateChart(data);
-    }
-
-    function addToTable(data) {
       const tbody = document.getElementById('data-table');
       const row = document.createElement('tr');
       
@@ -293,39 +251,35 @@
       
       tbody.insertBefore(row, tbody.firstChild);
       
-      // Batasi hanya 15 data terbaru
-      if (tbody.children.length > 15) {
+      // Batasi hanya 10 data terbaru
+      if (tbody.children.length > 10) {
         tbody.removeChild(tbody.lastChild);
       }
-    }
-
-    function updateChart(data) {
-      waterData.push(data);
       
-      // Batasi data chart untuk 30 titik terakhir
-      if (waterData.length > 30) {
-        waterData.shift();
-      }
+      // Update chart
+      waterData.push(data);
+      if (waterData.length > 20) waterData.shift();
       
       chart.data.labels = waterData.map(d => d.waktu);
       chart.data.datasets[0].data = waterData.map(d => d.tinggi);
       chart.data.datasets[1].data = waterData.map(d => d.jarak);
       chart.update();
+      
+      // Update waktu terakhir
+      const now = new Date();
+      document.getElementById('last-update').textContent = 
+        `Terakhir diperbarui: ${now.toLocaleTimeString()}`;
     }
 
     // Simulasi data untuk demo
     function simulateData() {
       const now = new Date();
       const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
-                     now.getMinutes().toString().padStart(2, '0') + ':' + 
-                     now.getSeconds().toString().padStart(2, '0');
+                     now.getMinutes().toString().padStart(2, '0');
       
-      // Simulasi pembacaan sensor dengan sedikit variasi
-      const baseDistance = 30 + Math.sin(Date.now()/10000) * 15;
-      const randomVariation = (Math.random() - 0.5) * 5;
-      const distance = Math.max(2, Math.min(baseDistance + randomVariation, 248));
-      
-      const waterLevel = 250 - distance;
+      // Simulasi pembacaan sensor
+      const distance = 20 + Math.random() * 100; // Jarak 20-120cm
+      const waterLevel = 250 - distance; // Tinggi tangki 250cm
       
       let status;
       if (waterLevel < 150) status = "Aman";
@@ -343,7 +297,7 @@
     // Untuk koneksi serial nyata
     async function connectToArduino() {
       try {
-        // Web Serial API (Chrome/Edge)
+        // Web Serial API (hanya bekerja di Chrome/Edge)
         const port = await navigator.serial.requestPort();
         await port.open({ baudRate: 9600 });
         
@@ -362,19 +316,11 @@
         }
       } catch (err) {
         console.log("Serial connection error:", err);
-        // Fallback ke simulasi
-        startSimulation();
+        // Fallback ke simulasi jika tidak bisa konek
+        setInterval(() => {
+          updateDisplay(simulateData());
+        }, 5000);
       }
-    }
-
-    function startSimulation() {
-      // Update pertama kali
-      updateDisplay(simulateData());
-      
-      // Update setiap 10 detik
-      setInterval(() => {
-        updateDisplay(simulateData());
-      }, 10000);
     }
 
     // Inisialisasi
@@ -382,21 +328,14 @@
     
     // Coba konek ke Arduino, jika tidak bisa gunakan simulasi
     if ('serial' in navigator) {
+      document.getElementById('last-update').textContent += " (Koneksi Serial)";
       connectToArduino();
     } else {
       document.getElementById('last-update').textContent += " (Mode Simulasi)";
-      startSimulation();
+      setInterval(() => {
+        updateDisplay(simulateData());
+      }, 5000);
     }
-
-    // Indikator update real-time
-    setInterval(() => {
-      const secondsSinceUpdate = (Date.now() - lastUpdateTime) / 1000;
-      if (secondsSinceUpdate > 15) {
-        document.getElementById('last-update').style.color = 'red';
-      } else {
-        document.getElementById('last-update').style.color = '';
-      }
-    }, 1000);
   </script>
 </body>
 </html>

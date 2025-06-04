@@ -36,7 +36,7 @@ void loop() {
     status = "Bahaya";
   }
   
-  // Get current time (real-time)
+  // Get current time (simulated)
   String currentTime = getCurrentTime();
   
   // Prepare data in JSON format for transmission
@@ -45,8 +45,8 @@ void loop() {
   // Send data via Serial USB
   Serial.println(data);
   
-  // Wait for 10 seconds before next reading
-  delay(10000);
+  // Wait for 5 minutes before next reading
+  delay(300000); // 300000 ms = 5 minutes
 }
 
 float getDistance() {
@@ -63,21 +63,20 @@ float getDistance() {
 }
 
 String getCurrentTime() {
-  // Get real time since startup (simplified)
-  static unsigned long startMillis = millis();
-  unsigned long currentMillis = millis() - startMillis;
+  static int minutes = 0;
+  static int hours = 0;
   
-  unsigned long seconds = currentMillis / 1000;
-  unsigned long minutes = seconds / 60;
-  unsigned long hours = minutes / 60;
-  
-  seconds %= 60;
-  minutes %= 60;
-  hours %= 24;
+  minutes += 5;
+  if (minutes >= 60) {
+    minutes = 0;
+    hours++;
+    if (hours >= 24) {
+      hours = 0;
+    }
+  }
   
   String timeStr = String(hours < 10 ? "0" + String(hours) : String(hours)) + ":" + 
-                   String(minutes < 10 ? "0" + String(minutes) : String(minutes)) + ":" + 
-                   String(seconds < 10 ? "0" + String(seconds) : String(seconds));
+                   String(minutes < 10 ? "0" + String(minutes) : String(minutes));
   
   return timeStr;
 }
